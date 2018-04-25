@@ -1,4 +1,4 @@
-CC=gcc
+CC=/usr/local/Cellar/gcc/7.3.0/bin/gcc-7
 CFLAGS=-O3 -DNDEBUG -D_POSIX_C_SOURCE=200809L -Wall -std=c99 -pedantic
 #CFLAGS=-O3 -DNDEBUG -D_GNU_SOURCE -Wall -std=c99 -pedantic
 #CFLAGS=-O3 -save-temps -D_GNU_SOURCE -Wall -std=c99 -pedantic

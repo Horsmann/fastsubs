@@ -12,15 +12,16 @@
 
 
 int main(int argc, char **argv) {
-  const char *usage = "Usage: fastsubs [-n <n> | -p <p>] model.lm[.gz] < input.txt\n";
+  const char *usage = "Usage: fastsubs [-n <n> | -p <p> | -o <o>] model.lm[.gz] < input.txt\n";
   char buf[BUF];
   Token s[SMAX+1];
   char *w[SMAX+1];
+  char *outFilePath=NULL;
 
   int opt;
   uint32_t opt_n = NMAX;
   double opt_p = PMAX;
-  while ((opt = getopt(argc, argv, "p:n:")) != -1) {
+  while ((opt = getopt(argc, argv, "p:n:o:")) != -1) {
     switch(opt) {
     case 'n':
       opt_n = atoi(optarg);
@@ -28,6 +29,8 @@ int main(int argc, char **argv) {
     case 'p':
       opt_p = atof(optarg);
       break;
+    case 'o':
+      outFilePath = optarg;
     default:
       die("%s", usage);
     }
@@ -49,18 +52,40 @@ int main(int argc, char **argv) {
   msg("ngram order = %d\n==> Enter sentences:\n", order);
   int fs_ncall = 0;
   int fs_nsubs = 0;
+  
+  FILE *f = NULL;
+  if(outFilePath != NULL){
+  	 f = fopen(outFilePath, "w");
+  }
+  
   while(fgets(buf, BUF, stdin)) {
     int n = sentence_from_string(s, buf, SMAX, w);
     for (int i = 2; i <= n; i++) {
       int nsubs = fastsubs(subs, s, i, lm, opt_p, opt_n);
       fs_ncall++; fs_nsubs += nsubs;
-      fputs(w[i], stdout);
-      for (int j = 0; j < nsubs; j++) {
-	printf("\t%s %.8f", token_to_string(subs[j].token), subs[j].logp);
+      
+      if(f==NULL){
+         fputs(w[i], stdout);
+         for (int j = 0; j < nsubs; j++) {
+		   printf("\t%s %.8f", token_to_string(subs[j].token), subs[j].logp);
+         }
+         printf("\n");
+    
+      }else{
+         fprintf(f, "%s", w[i]);
+    	 for (int j = 0; j < nsubs; j++) {
+		    fprintf(f, "\t%s %.8f", token_to_string(subs[j].token), subs[j].logp);
+         }
       }
-      printf("\n");
     }
+    
   }
+  
+  
+  if(f!=NULL){
+  	fclose(f);
+  }
+  
   msg("free lm...");
   lm_free(lm);
   msg("free symtable...");

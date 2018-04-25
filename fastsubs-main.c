@@ -12,16 +12,17 @@
 
 
 int main(int argc, char **argv) {
-  const char *usage = "Usage: fastsubs [-n <n> | -p <p> | -o <o>] model.lm[.gz] < input.txt\n";
+  const char *usage = "Usage: fastsubs [-n <n> | -p <p> | -o <o> -i <i>] model.lm[.gz]\n";
   char buf[BUF];
   Token s[SMAX+1];
   char *w[SMAX+1];
   char *outFilePath=NULL;
+  char *inputFilePath=NULL;
 
   int opt;
   uint32_t opt_n = NMAX;
   double opt_p = PMAX;
-  while ((opt = getopt(argc, argv, "p:n:o:")) != -1) {
+  while ((opt = getopt(argc, argv, "p:n:o:i:")) != -1) {
     switch(opt) {
     case 'n':
       opt_n = atoi(optarg);
@@ -32,6 +33,9 @@ int main(int argc, char **argv) {
     case 'o':
       outFilePath = optarg;
       break;
+    case 'i':
+      inputFilePath = optarg;
+      break;  
     default:
       die("%s", usage);
     }
@@ -60,7 +64,9 @@ int main(int argc, char **argv) {
   	 f = fopen(outFilePath, "w");
   }
   
-  while(fgets(buf, BUF, stdin)) {
+  FILE *in = fopen(inputFilePath, "r");
+  
+  while(fgets(buf, BUF, in)) {
     int n = sentence_from_string(s, buf, SMAX, w);
     for (int i = 2; i <= n; i++) {
       int nsubs = fastsubs(subs, s, i, lm, opt_p, opt_n);
@@ -87,6 +93,8 @@ int main(int argc, char **argv) {
   if(f!=NULL){
   	fclose(f);
   }
+  
+  fclose(in);
   
   msg("free lm...");
   lm_free(lm);

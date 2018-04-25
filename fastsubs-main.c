@@ -31,12 +31,14 @@ int main(int argc, char **argv) {
       break;
     case 'o':
       outFilePath = optarg;
+      break;
     default:
       die("%s", usage);
     }
   }
-  if (optind >= argc)
+  if (optind >= argc){
     die("%s", usage);
+  }
 
   msg("Get substitutes until count=%d OR probability=%g", opt_n, opt_p);
   msg("Loading model file %s", argv[optind]);

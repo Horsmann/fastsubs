@@ -220,6 +220,10 @@ int main(int argc, char **argv) {
     fputc('.', stderr);
   }
   fputc('\n', stderr);
+  
+  fclose(in);
+  fclose(out);
+  
   msg("Freeing sentence structs.");
   _d_free(s);
   msg("Freeing lm");

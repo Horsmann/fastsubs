@@ -14,6 +14,8 @@
 #define PMAX 1.0		/* default value for -p */
 #define NMAX UINT32_MAX		/* default value for -n */
 #define BATCHSIZE 1000		/* number of sentences to process at a time */
+FILE *in = NULL;
+FILE *out = NULL;
 
 const char tab_delimiter[2] = "\t";
 const char eol_delimiter[2] = "\n";
@@ -33,7 +35,7 @@ static int sent_read(struct sent_s *sarray, size_t smax, int one_target_per_sent
 
   size_t nsent = 0;
   for (nsent = 0; nsent < smax; nsent++) {
-    if (fgets(buf, BUF, stdin) == NULL) break;
+    if (fgets(buf, BUF, in) == NULL) break;
     if (one_target_per_sentence == 1) {
     	sarray[nsent].sent_record_buf = strdup(buf);
     	char* target = strtok(buf, tab_delimiter);
@@ -109,14 +111,14 @@ static void subs_write(Heap subs, int normalize_prob) {
 			double prob = pow(10, subs[j].logp)/norm;
 			if (prob < 0.00000001)
 				break;
-			if (j>1) putchar('\t');
-			printf("%s %.8f", token_to_string(subs[j].token), prob);
+			if (j>1) putc('\t', out);
+			fprintf(out, "%s %.8f", token_to_string(subs[j].token), prob);
 
 		}
 	} else {
 		for (int j = 1; j <= nsubs; j++) {
-			if (j>1) putchar('\t');
-			printf("%s %.8f", token_to_string(subs[j].token), subs[j].logp);
+			if (j>1) putc('\t', out);
+			fprintf(out, "%s %.8f", token_to_string(subs[j].token), subs[j].logp);
 		}
 	}
 }
@@ -126,29 +128,32 @@ static void sent_write(sent_t s, int normalize_prob) {
 	if (s->target_index == -1) {
 		u32 ssize = sentence_size(s->sent);
 		for (u32 i = 2; i <= ssize; i++) {
-			fputs(s->wstr[i], stdout);
-			putchar('\t');
+			fputs(s->wstr[i], out);
+			putc('\t', out);
 			Heap subs = s->subs[i];
 			subs_write(subs, normalize_prob);
-			putchar('\n');
+			putc('\n', out);
 		}
 	} else { // one target per sentence
-		printf("%s", s->sent_record_buf);
+		fprintf(out, "%s", s->sent_record_buf);
 		Heap subs = s->subs[s->target_index];
 		subs_write(subs, normalize_prob);
-		putchar('\n');
+		putc('\n', out);
 	}
 }
 
 int main(int argc, char **argv) {
-  const char *usage = "Usage: fastsubs-omp [-n <n> | -p <p> | -m <max-threads> | -t | -z ] model.lm[.gz] < input.txt\n";
+  const char *usage = "Usage: fastsubs-omp [-n <n> | -p <p> | -m <max-threads> | -t | -z  | -i | -o ] model.lm[.gz]\n";
   int opt;
   uint32_t opt_n = NMAX;
   double opt_p = PMAX;
   int opt_max_threads = -1;
   int one_target_per_sentence = 0;
   int normalize_prob = 0;
-  while ((opt = getopt(argc, argv, "p:n:m:tz")) != -1) {
+  char *outFilePath=NULL;
+  char *inputFilePath=NULL;
+  
+  while ((opt = getopt(argc, argv, "o:i:p:n:m:tz")) != -1) {
     switch(opt) {
     case 'n':
       opt_n = atoi(optarg);
@@ -165,6 +170,12 @@ int main(int argc, char **argv) {
     case 'z':
       normalize_prob = 1;
       break;
+    case 'o':
+      outFilePath = optarg;
+      break;
+    case 'i':
+      inputFilePath = optarg;
+      break;      
     break;
     default:
       die("%s", usage);
@@ -172,6 +183,10 @@ int main(int argc, char **argv) {
   }
   if (optind >= argc)
     die("%s", usage);
+    
+
+  in = fopen(inputFilePath, "r");
+  out = fopen(outFilePath, "w");
 
   if (opt_max_threads > 0) {
 	  omp_set_num_threads(opt_max_threads);

@@ -84,6 +84,7 @@ int main(int argc, char **argv) {
     	 for (int j = 0; j < nsubs; j++) {
 		    fprintf(f, "\t%s %.8f", token_to_string(subs[j].token), subs[j].logp);
          }
+         fprintf(f, "\n");
       }
     }
     
